@@ -1,0 +1,245 @@
+---
+title: Gor Arutiunian
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-12-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(SportsAnalytics270)
+library(readxl)
+
+managers <- read_excel("Bundesliga_Managers_200_Realistic_Names.xlsx")
+m <- read_excel("Sports.xlsx")
+epl_21<- read_excel('EPL21.xlsx')
+seriea_data<- read_excel('merged_managers.xlsx')
+df <- data.frame(matrix(ncol = 11, nrow = 0))
+
+for (i in 2014:2023) {
+  a <- final_table(data = f_data_sm, country = "Germany",season = i)
+  a <- a %>% mutate(season = i)
+  df <- rbind(df, a)
+}
+
+managers$Club <- gsub("^1\\. ", "", managers$Club)
+managers$Club <- gsub("Eintracht Frankfurt", "Ein Frankfurt", managers$Club)
+managers <- managers %>% rename(StartDate = `Start Date` , EndDate = `End Date`)
+
+managers <- managers %>% mutate(EndDate = ifelse(EndDate == "Present", "Dec 2024", EndDate))
+m <- m %>% mutate(End = ifelse(grepl("^expected|^\\-", End), "Dec 2024", End))
+# df <- df %>%
+#   mutate(StartDate = as.Date(paste("01", StartDate),
+#   format="%d %b %Y"), EndDate = as.Date(paste("01", EndDate), format="%d %b %Y")) 
+
+# managers <- managers %>%
+#   mutate(StartDate = as.Date(paste("01", StartDate), format="%d %b %Y"),
+#          EndDate = as.Date(paste("01", EndDate), format="%d %b %Y")) # Perform the join to add the Manager column to df based on the condition
+# df <- df %>% rowwise() %>% mutate(Manager = managers$Manager[Season >= as.integer(format(managers$StartDate, "%Y")) & Season <= as.integer(format(managers$EndDate, "%Y"))][1])
+
+epl_21 <- epl_21 %>% mutate(ClubNum = as.numeric(substr(ClubNum, 1, 1)),
+                            Matches = as.numeric(Matches),
+                            Points = as.numeric(Points))
+
+
+# Fit the linear model
+lm_model <- lm(Points ~ Matches, data = epl_21)
+slope <- coef(lm_model)[2]   # Extract slope
+intercept <- coef(lm_model)[1]  # Extract intercept
+
+
+
+# mngrs <- m
+# final_table <- df
+# # Convert Start and End columns to date ranges
+# colnames(mngrs)
+# 
+# # Replace 'Start' and 'End' with the actual column names if they differ
+# mngrs <- mngrs %>%
+#   mutate(
+#     Start_Date = dmy(substr(`Start`, 6, nchar(`Start`))), # Adjust quotes for column names if needed
+#     End_Date = ifelse(`End` == "Dec 2024", dmy("31-12-2024"), dmy(`End`))
+#   ) %>%
+#   select(Manager, Club, Start_Date, End_Date)
+# mngrs <- mngrs %>%
+#   mutate(Start_Date = dmy(substr(Start, 6, nchar(Start))),
+#          End_Date = ifelse(End == "Dec 2024", dmy("31-12-2024"), dmy(End))) %>%
+#   select(Manager, Club, StartDate, EndDate)
+# 
+# # Ensure the final_table has a proper season format for comparison
+# final_table <- final_table %>%
+#   mutate(season_start = ymd(paste0(season, "-07-01")),
+#          season_end = ymd(paste0(season + 1, "-06-30")))
+# 
+# # Perform a conditional join
+# final_table <- final_table %>%
+#   left_join(mngrs, by = c("TEAM" = "Club")) %>%
+#   filter(season_start >= Start_Date & season_end <= End_Date)
+# 
+# # Select necessary columns and remove duplicates if needed
+# final_table <- final_table %>%
+#   select(-Start_Date, -End_Date, -season_start, -season_end)
+
+
+
+# library(dplyr)
+# library(lubridate)
+
+# stexic problema
+
+# # Clean Start and End columns
+# mngrs <- mngrs %>%
+#   mutate(
+#     Start_Date = gsub(".*\\((.+)\\)", "\\1", `Start`), # Extract date inside parentheses
+#     Start_Date = dmy(Start_Date),                    # Convert to Date format
+#     End_Date = gsub(".*\\((.+)\\)", "\\1", `End`),   # Extract date inside parentheses
+#     End_Date = ifelse(is.na(End_Date), "31-12-2024", End_Date), # Handle open-ended cases
+#     End_Date = dmy(End_Date)
+#   ) %>%
+#   mutate(
+#     Start_Date = format(Start_Date, "%b %Y"),        # Format to "MMM YYYY"
+#     End_Date = format(End_Date, "%b %Y")
+#   )
+# 
+# # View the cleaned data
+# head(mngrs)
+# 
+# # Replace 'Start' and 'End' with actual column names
+# mngrs <- mngrs %>%
+#   mutate(
+#     Start_Date = gsub(".*\\((.+)\\)", "\\1", `Start`),  # Use backticks if needed
+#     Start_Date = dmy(Start_Date),                      # Convert to Date format
+#     End_Date = gsub(".*\\((.+)\\)", "\\1", `End`),     # Use backticks if needed
+#     End_Date = ifelse(is.na(End_Date), "31-12-2024", End_Date), # Handle open-ended cases
+#     End_Date = dmy(End_Date)
+#   ) %>%
+#   mutate(
+#     Start_Date = format(Start_Date, "%b %Y"),          # Format to "MMM YYYY"
+#     End_Date = format(End_Date, "%b %Y")
+#   )
+
+# View the cleaned data
+# head(mngrs)
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(managers, aes(x = Matches, y = PPM)) + 
+  geom_point() + 
+  geom_hline(yintercept = mean(managers$PPM), colour = "red") +
+  ggtitle("Bundesliga Managers' PPM with Mean Line") +
+  xlab("Number of Matches") +
+  ylab("Points Per Match (PPM)")
+  
+epl_21 %>% 
+  ggplot(aes(x = Matches, y = Points, size = factor(ClubNum), colour = as.numeric(PPM))) +
+  geom_point(alpha = 0.7) + 
+  geom_text(aes(label = Coach), hjust = 1, vjust = -1, size = 3) + 
+  geom_abline(intercept = intercept, slope = slope, colour = "black", linetype = "dashed") + # Add regression line
+  ggtitle("EPL Coaches Performance with Regression Line") +
+  xlab("Number of Matches") + 
+  ylab("Total Points") + 
+  scale_colour_gradient(low = "blue", high = "red", name = "Points Per Match (PPM)") + 
+  scale_size_discrete(name = "Number of Clubs") + 
+  theme_minimal() +
+  xlim(100, 550) +
+  ylim(100, 1100)
+```
+
+In this plot, we can see how Bundesliga managers' performance, measured by Points Per Match (PPM), varies with the number of matches they have managed. Each point represents a manager, while the red horizontal line marks the league's average PPM. This provides a clear visual comparison of individual manager performances relative to the league's mean.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+epl_21 %>% 
+  ggplot(aes(x = Matches, y = Points, size = factor(ClubNum), colour = as.numeric(PPM))) +
+  geom_point(alpha = 0.7) + 
+  geom_abline(intercept = intercept, slope = slope, colour = "black", linetype = "dashed") + # Add regression line
+  ggtitle("EPL Coaches Performance with Regression Line") +
+  xlab("Number of Matches") + 
+  ylab("Total Points") + 
+  scale_colour_gradient(low = "blue", high = "red", name = "Points Per Match (PPM)") + 
+  scale_size_discrete(name = "Number of Clubs") + 
+  theme_minimal() +
+  xlim(100, 550) +
+  ylim(100, 1100)
+
+```
+
+In this plot, we can observe the performance of EPL coaches, showing the relationship between the number of matches managed and the total points they earned. The size of each point represents the number of clubs a coach has worked with, while the color gradient from blue to red indicates their Points Per Match (PPM). The dashed regression line highlights the overall trend in performance. This simplified visualization emphasizes key patterns while avoiding additional labeling for individual coaches.
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Manager data
+managers <- data.frame(
+  Manager = c("Stefano Pioli", "Simone Inzaghi", "Maurizio Sarri", "Igor Tudor"),
+  StartSeason = c(2014, 2016, 2021, 2024),
+  EndSeason = c(2016, 2021, 2024, 2024)  # Igor Tudor ends in 2024
+)
+
+# Filter Lazio games from the 2014 season onwards
+lazio_games <- f_data_sm %>%
+  filter((HOMETEAM == "Lazio" | AWAYTEAM == "Lazio") & SEASON >= 2014) %>%
+  mutate(
+    GoalsFor = case_when(
+      HOMETEAM == "Lazio" ~ FTHG,  # Goals scored by Lazio when at home
+      AWAYTEAM == "Lazio" ~ FTAG   # Goals scored by Lazio when away
+    ),
+    GoalsAgainst = case_when(
+      HOMETEAM == "Lazio" ~ FTAG,  # Goals conceded by Lazio when at home
+      AWAYTEAM == "Lazio" ~ FTHG  # Goals conceded by Lazio when away
+    ),
+    GoalDifference = GoalsFor - GoalsAgainst,  # Goal difference for each match
+    MatchNumber = row_number(),  # Add a sequential match number
+    Manager = case_when(  # Assign manager based on season
+      SEASON >= 2014 & SEASON < 2016 ~ "Stefano Pioli",
+      SEASON >= 2016 & SEASON < 2021 ~ "Simone Inzaghi",
+      SEASON >= 2021 & SEASON < 2024 ~ "Maurizio Sarri",
+      SEASON >= 2024 ~ "Igor Tudor"  # Last manager for 2024
+    )
+  )
+
+# Calculate cumulative goal difference
+lazio_games <- lazio_games %>%
+  mutate(CumulativeGD = cumsum(GoalDifference))
+
+# Create manager periods with exact match ranges
+manager_periods <- lazio_games %>%
+  group_by(Manager) %>%
+  summarize(
+    StartMatch = min(MatchNumber),
+    EndMatch = max(MatchNumber)
+  )
+
+# Plot cumulative goal difference with manager tenure
+ggplot(lazio_games, aes(x = MatchNumber, y = CumulativeGD)) +
+  geom_line(colour = "darkgreen", size = 1) +
+  geom_point(colour = "green", size = 2) +
+  geom_rect(data = manager_periods, aes(
+    xmin = StartMatch, xmax = EndMatch,
+    ymin = -Inf, ymax = Inf,
+    fill = Manager
+  ), alpha = 0.2, inherit.aes = FALSE) +  # Shading for manager periods
+  scale_fill_brewer(palette = "Set3") +  # Color palette for managers
+  ggtitle("Lazio's Cumulative Goal Difference by Manager Tenure") +
+  xlab("Match Number") +
+  ylab("Cumulative Goal Difference") +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+
+```
+
+
+
