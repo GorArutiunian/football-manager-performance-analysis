@@ -1,0 +1,9 @@
+# RStudio temp files
+.Rproj.user/
+
+# History and workspace
+.Rhistory
+.RData
+
+# (Optional) if you don't want to track raw Excel data:
+# data/*.xlsx
